@@ -230,7 +230,7 @@ else:
         placeholder.empty()
         st.session_state.first_load = False
 
-    # ૦. ડેટાબેઝ સેટઅપ
+    # ૦. ડેટાબેઝ સેટઅપ અને ઓટો-માઈગ્રેશન (Table Creation & Updates)
     conn = sqlite3.connect("sutrapada_inward.db", check_same_thread=False)
     cursor = conn.cursor()
 
@@ -322,7 +322,6 @@ else:
             "📅 દૈનિક વર્કલિસ્ટ (Daily Worklist)",
         ]
     else:
-        # શાખા માટે ઇનબૉક્સ, ફોરવર્ડિંગ અને વર્કલિસ્ટ મેનૂ
         menu = [
             "📥 મારી શાખાની ટપાલ / પોપ-અપ (Branch Inbox)",
             "↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો (Forward Tappal)",
@@ -444,7 +443,7 @@ else:
                     st.error("⚠️ મહેરબાની કરીને ટપાલ નંબર અથવા વિષય દાખલ કરો.")
 
     # ==========================================
-    # 📁 ૩. એક્સેલ ફાઈલ અપલોડ (EXCEL IMPORT)
+    # 📁 ૩. એક્સેલ ફાઈલ અપલોડ (EXCEL IMPORT) - Fixed Error
     # ==========================================
     elif choice == "📁 એક્સેલ ફાઈલ અપલોડ (Excel Import)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>📁 એક્સેલ (Excel) ફાઈલમાંથી બલ્ક ઇમ્પોર્ટ</h2>", unsafe_allow_html=True)
@@ -459,15 +458,18 @@ else:
             if st.button("🚀 ડેટાબેઝમાં સાચવો (Import Data)"):
                 total_imported = 0
                 for _, row in df_upload.iterrows():
+                    # એક્સેલ ફાઈલમાંથી ડેટા સુરક્ષિત રીતે મેળવો
                     tappal_no = str(row.get("tappalnumber", row.get("tappal_no", "T-00")))
                     branch = str(row.get("To Branch", row.get("branch", "General")))
                     letter_subject = str(row.get("Letter Subject", row.get("letter_subject", "No Subject")))
+                    ref_no = str(row.get("ref_no", ""))
+                    sender = str(row.get("external_sender", row.get("Received From", "")))
                     
                     cursor.execute("""
                     INSERT INTO inward (
-                        tappal_no, letter_subject, branch, status, entry_date, is_read
-                    ) VALUES (?, ?, ?, 'Pending', ?, 0)
-                    """, (tappal_no, letter_subject, branch, str(import_date)))
+                        tappal_no, ref_no, letter_subject, branch, status, entry_date, external_sender, is_read
+                    ) VALUES (?, ?, ?, ?, 'Pending', ?, ?, 0)
+                    """, (tappal_no, ref_no, letter_subject, branch, str(import_date), sender))
                     total_imported += 1
                 conn.commit()
                 st.success(f"🎉 કુલ {total_imported} રેકોર્ડ્સ સફળતાપૂર્વક ઇમ્પોર્ટ થઈ ગયા છે અને સંબંધિત શાખાઓને મોકલી દેવાયા છે!")
@@ -496,17 +498,15 @@ else:
     # 📥 ૫. શાખા માટે ઇનબૉક્સ અને પોપ-અપ નોટિફિકેશન (BRANCH INBOX)
     # ==========================================
     elif st.session_state.user_role == "branch":
-        my_branch = st.session_state.current_user  # જેમ કે Land, General, વગેરે
+        my_branch = st.session_state.current_user
 
         if choice == "📥 મારી શાખાની ટપાલ / પોપ-અપ (Branch Inbox)":
             st.markdown(f"<h2 style='color: #003366;'>📥 {my_branch} શાખાનું ઇનબૉક્સ અને નવી ટપાલ એલર્ટ</h2>", unsafe_allow_html=True)
             st.write("---")
 
-            # અવાંચિત (Unread) નવી ટપાલો શોધો જેની માટે પોપ-અપ બતાવવાનું છે
             cursor.execute("SELECT id, tappal_no, letter_subject, entry_date, external_sender FROM inward WHERE branch = ? AND is_read = 0", (my_branch,))
             unread_tappals = cursor.fetchall()
 
-            # 🔥 પોપ-અપ નોટિફિકેશન વિન્ડો (Pop-up Alert)
             if unread_tappals:
                 st.markdown(f"""
                 <div style="background-color: #FEF3C7; border: 2px solid #D97706; padding: 20px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(217,119,6,0.3);">
@@ -537,32 +537,28 @@ else:
                 st.dataframe(df_branch[["id", "tappal_no", "letter_subject", "entry_date", "status", "remark"]], use_container_width=True)
 
         # ==========================================
-        # ↗️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો (BRANCH FORWARDING FEATURE)
+        # ↗️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
         # ==========================================
         elif choice == "↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો (Forward Tappal)":
             st.markdown(f"<h2 style='color: #003366;'>↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
             st.write("---")
 
-            # હાલની શાખાની તમામ ટપાલો મેળવો
             df_branch = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id DESC", conn)
 
             if df_branch.empty:
                 st.warning("તમારી શાખામાં ફોરવર્ડ કરવા માટે કોઈ ટપાલ ઉપલબ્ધ નથી.")
             else:
-                # યુઝરને ટપાલ પસંદ કરવા માટે ડ્રોપડાઉન આપો
                 tappal_options = {f"ટપાલ નં: {row['tappal_no']} - {row['letter_subject'][:40]}... (ID: {row['id']})": row['id'] for _, row in df_branch.iterrows()}
                 
-                selected_tappal_label = st.selectbox("ഫോરવર્ડ કરવા માટેની ટપાલ પસંદ કરો (Select Tappal):", list(tappal_options.keys()))
+                selected_tappal_label = st.selectbox("ફોરવર્ડ કરવા માટેની ટપાલ પસંદ કરો (Select Tappal):", list(tappal_options.keys()))
                 selected_tappal_id = tappal_options[selected_tappal_label]
 
-                # કઈ શાખામાં મોકલવી છે તેનું સિલેક્શન (પોતાની શાખા સિવાયની બધી શાખાઓ)
                 other_branches = [b for b in branch_list if b != my_branch]
                 target_branch = st.selectbox("કઈ શાખામાં ફોરવર્ડ કરવી છે? (Target Branch):", other_branches)
                 
                 forward_remark = st.text_area("ફોરવર્ડ કરવાનું કારણ / રીમાર્ક (Forwarding Remark):", f"Forwarded from {my_branch} branch.")
 
                 if st.button("🚀 ટપાલ ફોરવર્ડ કરો (Forward Now)"):
-                    # અહીં આપણે ટપાલની શાખા બદલીને નવી શાખા કરી દઈએ છીએ અને is_read = 0 કરીએ છીએ જેથી પેલી શાખામાં પોપ-અપ એલર્ટ દેખાય!
                     cursor.execute("""
                     UPDATE inward 
                     SET branch = ?, remark = ?, is_read = 0 
