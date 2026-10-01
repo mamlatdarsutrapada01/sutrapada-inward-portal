@@ -547,11 +547,8 @@ else:
             else:
                 st.dataframe(df_branch[["id", "tappal_no", "letter_subject", "entry_date", "status", "remark"]], use_container_width=True)
 
-        # ==========================================
-        # ↗️️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
-        # ==========================================
         elif choice == "↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો (Forward Tappal)":
-            st.markdown(f"<h2 style='color: #003366;'>↗️️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color: #003366;'>↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
             st.write("---")
 
             df_branch = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id DESC", conn)
@@ -581,9 +578,6 @@ else:
                     time.sleep(1.5)
                     st.rerun()
 
-        # ==========================================
-        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST)
-        # ==========================================
         elif choice == "📅 શાખા વર્કલિસ્ટ (Branch Worklist)":
             st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ, પ્રિન્ટ અને સ્ટેટસ અપડેટ</h2>", unsafe_allow_html=True)
             st.write("---")
