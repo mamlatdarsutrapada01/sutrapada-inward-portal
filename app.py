@@ -27,7 +27,7 @@ if "logged_in" not in st.session_state:
 if "current_user" not in st.session_state:
     st.session_state.current_user = ""
 if "user_role" not in st.session_state:
-    st.session_state.user_role = ""  # 'admin' અથવા 'branch'
+    st.session_state.user_role = ""
 
 # Custom CSS for UI & Designer Credit
 st.markdown(
@@ -257,7 +257,6 @@ else:
     )
     """)
 
-    # ઓટો-માઈગ્રેશન
     try:
         cursor.execute("ALTER TABLE inward ADD COLUMN ref_no TEXT")
     except sqlite3.OperationalError:
@@ -275,7 +274,6 @@ else:
 
     conn.commit()
 
-    # અધિકૃત શાખાઓની યાદી
     branch_list = [
         "Land",
         "General",
@@ -292,7 +290,6 @@ else:
         "Election Branch",
     ]
 
-    # PDF જનરેશન ફંકશન
     def generate_pdf(dataframe, title_text):
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=10, leftMargin=10, topMargin=10, bottomMargin=10)
@@ -322,7 +319,6 @@ else:
         buffer.seek(0)
         return buffer
 
-    # સાઈડબાર મેનૂ
     st.sidebar.markdown(f"""
     <div style="text-align: center; padding: 10px 0;">
         <h3 style="margin: 0; color: #FFFFFF;">🏛️ મામલતદાર કચેરી</h3>
@@ -552,10 +548,10 @@ else:
                 st.dataframe(df_branch[["id", "tappal_no", "letter_subject", "entry_date", "status", "remark"]], use_container_width=True)
 
         # ==========================================
-        # ↗️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
+        # ↗️️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
         # ==========================================
         elif choice == "↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો (Forward Tappal)":
-            st.markdown(f"<h2 style='color: #003366;'>↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color: #003366;'>↗️️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
             st.write("---")
 
             df_branch = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id DESC", conn)
@@ -586,7 +582,7 @@ else:
                     st.rerun()
 
         # ==========================================
-        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST - WITH ORIGINAL COLUMNS, PRINT, PDF & STATUS UPDATE)
+        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST)
         # ==========================================
         elif choice == "📅 શાખા વર્કલિસ્ટ (Branch Worklist)":
             st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ, પ્રિન્ટ અને સ્ટેટસ અપડેટ</h2>", unsafe_allow_html=True)
@@ -610,7 +606,6 @@ else:
                     df_filtered["branch_sr_no"] = df_filtered.index + 1
                     df_filtered["handwritten_date"] = ""
 
-                    # આપણી મૂળ કૉલમ્સ સેટ કરો
                     print_columns = {
                         "branch_sr_no": "શાખા ક્રમ",
                         "office_sr_no": "ઓફિસ ક્રમ",
