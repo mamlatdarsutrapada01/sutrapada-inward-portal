@@ -586,33 +586,103 @@ else:
                     st.rerun()
 
         # ==========================================
-        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST - STATUS UPDATE FEATURE)
+        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST - WITH ORIGINAL COLUMNS, PRINT, PDF & STATUS UPDATE)
         # ==========================================
         elif choice == "📅 શાખા વર્કલિસ્ટ (Branch Worklist)":
-            st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ અને સ્ટેટસ અપડેટ</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ, પ્રિન્ટ અને સ્ટેટસ અપડેટ</h2>", unsafe_allow_html=True)
             st.write("---")
             
-            df_branch = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id DESC", conn)
+            df_all = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id ASC", conn)
             
-            if not df_branch.empty:
+            if df_all.empty:
+                st.warning("આ શાખામાં કોઈ રેકોર્ડ ઉપલબ્ધ નથી.")
+            else:
+                df_all["office_sr_no"] = df_all["id"]
+                df_all["date_entry_clean"] = pd.to_datetime(df_all["entry_date"], errors="coerce").dt.strftime("%Y-%m-%d")
+                
                 selected_date = st.date_input("🗓️ તારીખ પસંદ કરો:", date.today())
-                df_filtered = df_branch[df_branch["entry_date"] == str(selected_date)]
+                selected_date_str = str(selected_date)
+                
+                df_filtered = df_all[df_all["date_entry_clean"] == selected_date_str]
                 
                 if not df_filtered.empty:
-                    # તમારી મૂળ કૉલમ્સ સાથેનું ટેબલ દર્શાવો
-                    st.subheader("📋 તારીખ મુજબની ટપાલો:")
-                    st.dataframe(df_filtered[["id", "tappal_no", "letter_subject", "status", "remark"]], use_container_width=True)
-                    
+                    df_filtered = df_filtered.reset_index(drop=True)
+                    df_filtered["branch_sr_no"] = df_filtered.index + 1
+                    df_filtered["handwritten_date"] = ""
+
+                    # આપણી મૂળ કૉલમ્સ સેટ કરો
+                    print_columns = {
+                        "branch_sr_no": "શાખા ક્રમ",
+                        "office_sr_no": "ઓફિસ ક્રમ",
+                        "tappal_no": "ટપાલ નંબર",
+                        "letter_subject": "પત્રનો વિષય",
+                        "branch": "શાખા",
+                        "created_on": "ઈ-સરકાર તારીખ",
+                        "entry_date": "તારીખ",
+                        "external_sender": "મોકલનાર",
+                        "handwritten_date": "તારીખ (ખાલી)",
+                        "status": "સ્ટેટસ",
+                        "remark": "રીમાર્ક",
+                    }
+
+                    df_print = df_filtered[list(print_columns.keys())].rename(columns=print_columns)
+
+                    st.subheader(f"📋 વર્કલિસ્ટ - {selected_date_str} (કુલ ટપાલ: {len(df_print)})")
+                    st.dataframe(df_print, use_container_width=True)
+
+                    st.write("---")
+                    st.subheader("🖨️ ડાઉનલોડ અને પ્રિન્ટ વિકલ્પો")
+
+                    col_btn1, col_btn2 = st.columns(2)
+
+                    with col_btn1:
+                        pdf_buffer = generate_pdf(df_print, f"{my_branch} Branch Worklist ({selected_date_str})")
+                        st.download_button(
+                            label="📥 PDF ફાઈલ ડાઉનલોડ કરો (Download PDF)",
+                            data=pdf_buffer,
+                            file_name=f"{my_branch}_Worklist_{selected_date_str}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
+
+                    with col_btn2:
+                        html_table = df_print.to_html(classes="styled-table", index=False)
+                        print_html_code = f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                        <title>{my_branch} શાખા - ટપાલ વર્કલિસ્ટ</title>
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap');
+                            @page {{ size: landscape; margin: 10mm; }}
+                            body {{ font-family: 'Noto Sans Gujarati', sans-serif; margin: 20px; color: #000; text-align: center; }}
+                            h2 {{ color: #003366; margin-bottom: 2px; font-size: 20px; }}
+                            p {{ font-size: 14px; margin-top: 0; color: #555; margin-bottom: 20px; }}
+                            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; text-align: left; }}
+                            th, td {{ border: 1px solid #003366; padding: 8px; vertical-align: middle; }}
+                            th {{ background-color: #003366 !important; color: white !important; font-weight: 600; -webkit-print-color-adjust: exact; }}
+                            .print-btn {{ background-color: #16A34A; color: white; padding: 12px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; font-family: 'Noto Sans Gujarati', sans-serif; margin-bottom: 20px; }}
+                            @media print {{ .print-btn {{ display: none; }} }}
+                        </style>
+                        </head>
+                        <body>
+                            <button class="print-btn" onclick="window.print();">🖨️ અહીં ક્લિક કરીને પ્રિન્ટ કાઢો (Print)</button>
+                            <h2>મામલતદાર કચેરી - સુત્રાપાડા ({my_branch} શાખા)</h2>
+                            <p><b>ટપાલ વર્કલિસ્ટ / દૈનિક રિપોર્ટ (તારીખ: {selected_date_str})</b></p>
+                            {html_table}
+                        </body>
+                        </html>
+                        """
+                        components.html(print_html_code, height=120)
+
                     st.write("---")
                     st.subheader("⚙️ ટપાલનું સ્ટેટસ બદલો (Pending / Working / Disposed)")
                     
-                    # શાખા માટે ટપાલ સિલેક્ટ કરીને સ્ટેટસ બદલવાનું ફોર્મ
-                    tappal_edit_options = {f"ટપાલ નં: {row['tappal_no']} - {row['letter_subject'][:35]}... (ID: {row['id']})": row['id'] for _, row in df_filtered.iterrows()}
+                    tappal_edit_options = {f"ટપાલ નં: {row['tappal_no']} - {str(row['letter_subject'])[:35]}... (ID: {row['id']})": row['id'] for _, row in df_filtered.iterrows()}
                     
                     selected_edit_label = st.selectbox("સ્ટેટસ બદલવા માટે ટપાલ પસંદ કરો:", list(tappal_edit_options.keys()))
                     selected_edit_id = tappal_edit_options[selected_edit_label]
                     
-                    # હાલનું સ્ટેટસ ચેક કરો
                     current_row = df_filtered[df_filtered["id"] == selected_edit_id].iloc[0]
                     curr_status = current_row["status"] if pd.notna(current_row["status"]) else "Pending"
                     
@@ -633,15 +703,7 @@ else:
                         time.sleep(1)
                         st.rerun()
 
-                    st.write("---")
-                    pdf_buffer = generate_pdf(df_filtered[["id", "tappal_no", "letter_subject", "status"]], f"{my_branch} Branch Worklist")
-                    st.download_button(
-                        label="📥 વર્કલિસ્ટ PDF ડાઉનલોડ કરો",
-                        data=pdf_buffer,
-                        file_name=f"{my_branch}_Worklist.pdf",
-                        mime="application/pdf"
-                    )
                 else:
-                    st.info("આ તારીખે કોઈ ટપાલ ઉપલબ્ધ નથી.")
+                    st.info("આ તારીખ માટે કોઈ ટપાલ ઉપલબ્ધ નથી.")
             else:
                 st.info("કોઈ રેકોર્ડ નથી.")
