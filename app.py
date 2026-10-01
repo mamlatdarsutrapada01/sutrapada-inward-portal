@@ -257,7 +257,7 @@ else:
     )
     """)
 
-    # ઓટો-માઈગ્રેશન: જો ખૂટતી કૉલમ હોય તો ઉમેરો
+    # ઓટો-માઈગ્રેશન
     try:
         cursor.execute("ALTER TABLE inward ADD COLUMN ref_no TEXT")
     except sqlite3.OperationalError:
@@ -412,7 +412,7 @@ else:
                 st.dataframe(df_recent, use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 📝 ૨. નવી એન્ટ્રી નોંધણી (NEW ENTRY) + POPUP TRIGGER
+    # 📝 ૨. નવી એન્ટ્રી નોંધણી (NEW ENTRY)
     # ==========================================
     elif choice == "📝 નવી એન્ટ્રી નોંધણી (New Entry)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>📝 નવી તપાલ/અરજી નોંધણી અને શાખા ફાળવણી</h2>", unsafe_allow_html=True)
@@ -429,7 +429,7 @@ else:
                 internal_sender = st.text_input("આંતરિક મોકલનાર (Internal Sender)")
                 external_sender = st.text_input("બાહ્ય મોકલનાર (External Sender)")
                 created_by = st.text_input("બનાવનારનું નામ (Created By)", "Paras Bhola")
-                status = st.selectbox("સ્થિતિ (Status)", ["Pending", "Disposed"])
+                status = st.selectbox("સ્થિતિ (Status)", ["Pending", "Working", "Disposed"])
             with col3:
                 received_from = st.text_input("ક્યાંથી મળેલ છે (Received From)")
                 from_office = st.text_input("કઈ કચેરીથી (From Office)")
@@ -455,7 +455,7 @@ else:
                         created_by, str(entry_date), internal_sender, external_sender, str(entry_date), remark
                     ))
                     conn.commit()
-                    st.success(f"✅ ટપાલ સફળતાપૂર્વક નોંધીને **[{branch}]** શાખાને મોકલી દેવામાં આવી છે! તે શાખાના લૉગિનમાં પોપ-અપ નોટિફિકેશન દેખાશે.")
+                    st.success(f"✅ ટપાલ સફળતાપૂર્વક નોંધીને **[{branch}]** શાખાને મોકલી દેવામાં આવી છે!")
                 else:
                     st.error("⚠️ મહેરબાની કરીને ટપાલ નંબર અથવા વિષય દાખલ કરો.")
 
@@ -488,7 +488,7 @@ else:
                     """, (tappal_no, ref_no, letter_subject, branch, str(import_date), sender))
                     total_imported += 1
                 conn.commit()
-                st.success(f"🎉 કુલ {total_imported} રેકોર્ડ્સ સફળતાપૂર્વક ઇમ્પોર્ટ થઈ ગયા છે અને સંબંધિત શાખાઓને મોકલી દેવાયા છે!")
+                st.success(f"🎉 કુલ {total_imported} રેકોર્ડ્સ સફળતાપૂર્વક ઇમ્પોર્ટ થઈ ગયા છે!")
 
     # ==========================================
     # 📅 ૪. દૈનિક વર્કલિસ્ટ (DAILY WORKLIST - ADMIN)
@@ -529,7 +529,6 @@ else:
                     <h3 style="color: #92400E; margin-top: 0; display: flex; align-items: center;">
                         🚨 એલર્ટ: તમને નવી ટપાલ પ્રાપ્ત થઈ છે! ({len(unread_tappals)} નવી ટપાલ)
                     </h3>
-                    <p style="color: #B45309; font-weight: 600;">કચેરીમાંથી અથવા અન્ય શાખામાંથી આપની શાખા માટે નીચે મુજબની નવી ટપાલો મોકલવામાં આવી છે:</p>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -553,7 +552,7 @@ else:
                 st.dataframe(df_branch[["id", "tappal_no", "letter_subject", "entry_date", "status", "remark"]], use_container_width=True)
 
         # ==========================================
-        # ↗️️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
+        # ↗️ ૬. શાખામાંથી અન્ય શાખામાં ટપાલ ફોરવર્ડ કરો
         # ==========================================
         elif choice == "↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો (Forward Tappal)":
             st.markdown(f"<h2 style='color: #003366;'>↗️ ટપાલ અન્ય શાખામાં ફોરવર્ડ કરો ({my_branch} Branch)</h2>", unsafe_allow_html=True)
@@ -582,29 +581,67 @@ else:
                     """, (target_branch, forward_remark, selected_tappal_id))
                     conn.commit()
                     
-                    st.success(f"✅ ટપાલ સફળતાપૂર્વક **[{target_branch}]** શાખામાં ફોરવર્ડ કરી દેવામાં આવી છે! હવે તે શાખાના લૉગિનમાં એલર્ટ દેખાશે.")
+                    st.success(f"✅ ટપાલ સફળતાપૂર્વક **[{target_branch}]** શાખામાં ફોરવર્ડ કરી દેવામાં આવી છે!")
                     time.sleep(1.5)
                     st.rerun()
 
+        # ==========================================
+        # 📅 ૭. શાખા વર્કલિસ્ટ (BRANCH WORKLIST - STATUS UPDATE FEATURE)
+        # ==========================================
         elif choice == "📅 શાખા વર્કલિસ્ટ (Branch Worklist)":
-            st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ અને પ્રિન્ટ</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color: #003366;'>📅 {my_branch} શાખાનું દૈનિક વર્કલિસ્ટ અને સ્ટેટસ અપડેટ</h2>", unsafe_allow_html=True)
             st.write("---")
+            
             df_branch = pd.read_sql_query(f"SELECT * FROM inward WHERE branch = '{my_branch}' ORDER BY id DESC", conn)
             
             if not df_branch.empty:
                 selected_date = st.date_input("🗓️ તારીખ પસંદ કરો:", date.today())
                 df_filtered = df_branch[df_branch["entry_date"] == str(selected_date)]
+                
                 if not df_filtered.empty:
-                    st.dataframe(df_filtered[["id", "tappal_no", "letter_subject", "status"]], use_container_width=True)
+                    # તમારી મૂળ કૉલમ્સ સાથેનું ટેબલ દર્શાવો
+                    st.subheader("📋 તારીખ મુજબની ટપાલો:")
+                    st.dataframe(df_filtered[["id", "tappal_no", "letter_subject", "status", "remark"]], use_container_width=True)
                     
+                    st.write("---")
+                    st.subheader("⚙️ ટપાલનું સ્ટેટસ બદલો (Pending / Working / Disposed)")
+                    
+                    # શાખા માટે ટપાલ સિલેક્ટ કરીને સ્ટેટસ બદલવાનું ફોર્મ
+                    tappal_edit_options = {f"ટપાલ નં: {row['tappal_no']} - {row['letter_subject'][:35]}... (ID: {row['id']})": row['id'] for _, row in df_filtered.iterrows()}
+                    
+                    selected_edit_label = st.selectbox("સ્ટેટસ બદલવા માટે ટપાલ પસંદ કરો:", list(tappal_edit_options.keys()))
+                    selected_edit_id = tappal_edit_options[selected_edit_label]
+                    
+                    # હાલનું સ્ટેટસ ચેક કરો
+                    current_row = df_filtered[df_filtered["id"] == selected_edit_id].iloc[0]
+                    curr_status = current_row["status"] if pd.notna(current_row["status"]) else "Pending"
+                    
+                    status_list = ["Pending", "Working", "Disposed"]
+                    default_idx = status_list.index(curr_status) if curr_status in status_list else 0
+                    
+                    new_status = st.selectbox("નવું સ્ટેટસ પસંદ કરો:", status_list, index=default_idx)
+                    new_remark = st.text_area("વધારાની નોંધ / રીમાર્ક (Remark):", str(current_row["remark"] if pd.notna(current_row["remark"]) else ""))
+                    
+                    if st.button("💾 સ્ટેટસ અપડેટ કરો (Update Status)"):
+                        cursor.execute("""
+                        UPDATE inward 
+                        SET status = ?, remark = ? 
+                        WHERE id = ?
+                        """, (new_status, new_remark, selected_edit_id))
+                        conn.commit()
+                        st.success(f"✅ ટપાલનું સ્ટેટસ સફળતાપૂર્વક **[{new_status}]** તરીકે અપડેટ થઈ ગયું છે!")
+                        time.sleep(1)
+                        st.rerun()
+
+                    st.write("---")
                     pdf_buffer = generate_pdf(df_filtered[["id", "tappal_no", "letter_subject", "status"]], f"{my_branch} Branch Worklist")
                     st.download_button(
-                        label="📥 PDF ડાઉનલોડ કરો",
+                        label="📥 વર્કલિસ્ટ PDF ડાઉનલોડ કરો",
                         data=pdf_buffer,
                         file_name=f"{my_branch}_Worklist.pdf",
                         mime="application/pdf"
                     )
                 else:
-                    st.info("આ તારીખે કોઈ ટપાલ નથી.")
+                    st.info("આ તારીખે કોઈ ટપાલ ઉપલબ્ધ નથી.")
             else:
                 st.info("કોઈ રેકોર્ડ નથી.")
