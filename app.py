@@ -848,6 +848,7 @@ else:
                     html_table = df_print.to_html(
                         classes="styled-table", index=False
                     )
+                    
                     print_html_code = f"""
                     <!DOCTYPE html>
                     <html>
@@ -855,61 +856,92 @@ else:
                     <title>મામલતદાર કચેરી સુત્રાપાડા - ટપાલ વર્કલિસ્ટ</title>
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap');
+                        
+                        @page {{
+                            size: landscape;
+                            margin: 10mm;
+                        }}
+                        
                         body {{
                             font-family: 'Noto Sans Gujarati', sans-serif;
                             margin: 20px;
                             color: #000;
-                        }}
-                        h2, h4 {{
                             text-align: center;
-                            margin: 5px 0;
                         }}
-                        .styled-table {{
+                        h2 {{
+                            color: #003366;
+                            margin-bottom: 2px;
+                            font-size: 20px;
+                        }}
+                        p {{
+                            font-size: 14px;
+                            margin-top: 0;
+                            color: #555;
+                            margin-bottom: 20px;
+                        }}
+                        table {{
                             width: 100%;
                             border-collapse: collapse;
-                            margin-top: 15px;
-                            font-size: 12px;
-                        }}
-                        .styled-table th, .styled-table td {{
-                            border: 1px solid #333;
-                            padding: 6px 8px;
+                            margin-top: 10px;
+                            font-size: 11px;
                             text-align: left;
                         }}
-                        .styled-table th {{
-                            background-color: #f2f2f2;
-                            font-weight: bold;
+                        th, td {{
+                            border: 1px solid #003366;
+                            padding: 8px;
+                            vertical-align: middle;
                         }}
+                        th {{
+                            background-color: #003366 !important;
+                            color: white !important;
+                            font-weight: 600;
+                            -webkit-print-color-adjust: exact;
+                        }}
+                        
+                        /* રીમાર્ક કૉલમ મોટી અને પહોળી કરવા માટે */
+                        td:nth-child(10), th:nth-child(10) {{
+                            min-width: 250px;
+                            width: 28%;
+                            word-break: break-word;
+                            white-space: pre-wrap;
+                            height: 60px;
+                        }}
+                        
+                        /* પ્રિન્ટ બટનની ડિઝાઇન */
+                        .print-btn {{
+                            background-color: #16A34A;
+                            color: white;
+                            padding: 12px 30px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-family: 'Noto Sans Gujarati', sans-serif;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                            margin-bottom: 20px;
+                        }}
+                        .print-btn:hover {{
+                            background-color: #15803D;
+                        }}
+                        
+                        /* જ્યારે પ્રિન્ટ નીકળે ત્યારે બટન છુપાઈ જાય */
                         @media print {{
-                            @page {{
-                                size: landscape;
-                                margin: 10mm;
-                            }}
-                            .no-print {{
+                            .print-btn {{
                                 display: none;
                             }}
                         }}
                     </style>
-                    <script>
-                        function printPage() {{
-                            window.print();
-                        }}
-                    </script>
                     </head>
                     <body>
-                        <button class="no-print" onclick="printPage()" style="padding: 10px 20px; background-color: #003366; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 15px;">🖨️ વર્કલિસ્ટ પ્રિન્ટ કરો</button>
-                        <h2>મામલતદાર કચેરી, સુત્રાપાડા</h2>
-                        <h4>દૈનિક ટપાલ વર્કલિસ્ટ - {date_display}</h4>
-                        <div id="printTable">
-                            {html_table}
-                        </div>
-                        <br><br>
-                        <table style="width: 100%; border: none; margin-top: 30px;">
-                            <tr style="border: none;">
-                                <td style="border: none; text-align: left;"><b>તૈયાર કરનાર:</b> _________________</td>
-                                <td style="border: none; text-align: right;"><b>મામલતદાર શ્રી/શિરસ્તેદાર:</b> _________________</td>
-                            </tr>
-                        </table>
+                        <button class="print-btn" onclick="window.print();">🖨️ અહીં ક્લિક કરીને પ્રિન્ટ કાઢો (Print)</button>
+                        
+                        <h2>મામલતદાર કચેરી - સુત્રાપાડા</h2>
+                        <p><b>ટપાલ વર્કલિસ્ટ / દૈનિક રિપોર્ટ ({date_display})</b></p>
+                        
+                        {html_table}
                     </body>
                     </html>
                     """
-                    components.html(print_html_code, height=500, scrolling=True)
+                    
+                    components.html(print_html_code, height=120)
