@@ -196,7 +196,6 @@ if not st.session_state.logged_in:
         """, unsafe_allow_html=True)
 
 else:
-    # ૦. ડેટાબેઝ સેટઅપ અને ઓટો-માઈગ્રેશન (જાવક નંબર કૉલમ સાથે)
     conn = sqlite3.connect("sutrapada_inward.db", check_same_thread=False)
     cursor = conn.cursor()
 
@@ -225,7 +224,6 @@ else:
     )
     """)
 
-    # ઓટો-માઈગ્રેશન ચેક
     for col_name in ["ref_no", "external_sender", "is_read", "javak_no", "dispatch_date"]:
         try:
             cursor.execute(f"ALTER TABLE inward ADD COLUMN {col_name} TEXT")
@@ -269,7 +267,6 @@ else:
         buffer.seek(0)
         return buffer
 
-    # સાઈડબાર મેનૂ
     st.sidebar.markdown(f"""
     <div style="text-align: center; padding: 10px 0;">
         <h3 style="margin: 0; color: #FFFFFF;">🏛️ મામલતદાર કચેરી</h3>
@@ -309,9 +306,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # ==========================================
-    # 🏠 ૧. એડમિન ડેશબોર્ડ
-    # ==========================================
     if choice == "🏠 મુખ્ય ડેશબોર્ડ (Dashboard)" and st.session_state.user_role == "admin":
         st.markdown("""
         <div class="govt-header">
@@ -353,9 +347,6 @@ else:
                 df_recent.columns = ["ID", "તપાલ નં.", "વિષય", "શાખા", "તારીખ"]
                 st.dataframe(df_recent, use_container_width=True, hide_index=True)
 
-    # ==========================================
-    # 📝 ૨. નવી એન્ટ્રી નોંધણી
-    # ==========================================
     elif choice == "📝 નવી એન્ટ્રી નોંધણી (New Entry)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>📝 નવી તપાલ/અરજી નોંધણી અને શાખા ફાળવણી</h2>", unsafe_allow_html=True)
         st.write("---")
@@ -401,9 +392,6 @@ else:
                 else:
                     st.error("⚠️ મહેરબાની કરીને ટપાલ નંબર અથવા વિષય દાખલ કરો.")
 
-    # ==========================================
-    # 📁 ૩. એક્સેલ ફાઈલ અપલોડ
-    # ==========================================
     elif choice == "📁 એક્સેલ ફાઈલ અપલોડ (Excel Import)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>📁 એક્સેલ (Excel) ફાઈલમાંથી બલ્ક ઇમ્પોર્ટ</h2>", unsafe_allow_html=True)
         st.write("---")
@@ -412,7 +400,7 @@ else:
         if uploaded_file is not None:
             df_upload = pd.read_excel(uploaded_file)
             st.dataframe(df_upload.head(5), use_container_width=True)
-            import_date = st.date_input("🗓️ ઇમ્પોર્ટ તારીખ:", date.today())
+            import_date = st.date_input("🗓 ઇમ્પોર્ટ તારીખ:", date.today())
 
             if st.button("🚀 ડેટાબેઝમાં સાચવો (Import Data)"):
                 total_imported = 0
@@ -432,9 +420,6 @@ else:
                 conn.commit()
                 st.success(f"🎉 કુલ {total_imported} રેકોર્ડ્સ સફળતાપૂર્વક ઇમ્પોર્ટ થઈ ગયા છે!")
 
-    # ==========================================
-    # ↗️ ૪. એડમિન ટપાલ ફોરવર્ડ અને જાવક નંબર (ADMIN DISPATCH / FORWARD)
-    # ==========================================
     elif choice == "↗️ એડમિન ટપાલ ફોરવર્ડ અને જાવક નંબર (Admin Dispatch/Forward)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>↗️ એડમિન દ્વારા ટપાલ અન્ય શાખામાં ફોરવર્ડ અને જાવક નંબર આપો</h2>", unsafe_allow_html=True)
         st.write("---")
@@ -456,7 +441,7 @@ else:
             col_f1, col_f2 = st.columns(2)
             with col_f1:
                 target_branch = st.selectbox("કઈ શાખામાં મોકલવી છે? (Target Branch):", branch_list)
-                javak_no = st.text_input("જાવਕ નંબર (Javak No / Outgoing No)*:")
+                javak_no = st.text_input("જાવક નંબર (Javak No / Outgoing No)*:")
             with col_f2:
                 dispatch_date = st.date_input("જાવક તારીખ (Dispatch Date):", date.today())
                 forward_remark = st.text_area("ફોરવર્ડ રીમાર્ક / નોંધ (Remark):", f"Forwarded by Mamlatdar Admin to {target_branch}")
@@ -475,9 +460,6 @@ else:
                 else:
                     st.error("⚠️ મહેરબાની કરીને જાવક નંબર (Javak No) દાખલ કરો.")
 
-    # ==========================================
-    # 📅 ૫. દૈનિક વર્કલિસ્ટ (એડમિન)
-    # ==========================================
     elif choice == "📅 દૈનિક વર્કલિસ્ટ (Daily Worklist)" and st.session_state.user_role == "admin":
         st.markdown("<h2 style='color: #003366;'>📅 દૈનિક ટપાલ વર્કલિસ્ટ અને પ્રિન્ટ</h2>", unsafe_allow_html=True)
         st.write("---")
@@ -495,9 +477,6 @@ else:
             else:
                 st.dataframe(df_filtered[["id", "tappal_no", "ref_no", "javak_no", "branch", "letter_subject", "status"]], use_container_width=True)
 
-    # ==========================================
-    # 📥 ૬. શાખા માટે ઇનબૉક્સ અને પોપ-અપ નોટિફિકેશન
-    # ==========================================
     elif st.session_state.user_role == "branch":
         my_branch = st.session_state.current_user
 
@@ -579,7 +558,7 @@ else:
                 df_all["office_sr_no"] = df_all["id"]
                 df_all["date_entry_clean"] = pd.to_datetime(df_all["entry_date"], errors="coerce").dt.strftime("%Y-%m-%d")
                 
-                selected_date = st.date_input("🗓️ તારીખ પસંદ કરો:", date.today())
+                selected_date = st.date_input("🗓️️ તારીખ પસંદ કરો:", date.today())
                 selected_date_str = str(selected_date)
                 
                 df_filtered = df_all[df_all["date_entry_clean"] == selected_date_str]
@@ -682,6 +661,4 @@ else:
                         st.rerun()
 
                 else:
-                    st.info("આ તારીખ માટે કોઈ ટપાલ ઉપલબ્ધ નથી.")
-            else:
-                st.info("કોઈ રેકોર્ડ નથી.")
+                    st.info("આ તારીખ માટે કોઈ રેકોર્ડ નથી.")
