@@ -1,92 +1,142 @@
-elif choice == "📅 દૈનિક વર્કલિસ્ટ (Daily Worklist)" and st.session_state.user_role == "admin":
-        st.markdown("<h2 style='color: #003366;'>📅 દૈનિક ટપાલ વર્કલિસ્ટ, સર્ચ અને પ્રિન્ટ</h2>", unsafe_allow_html=True)
-        st.write("---")
-        
-        df_all = pd.read_sql_query("SELECT * FROM inward ORDER BY id DESC", conn)
+import io
+import sqlite3
+import time
+from datetime import date
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
 
-        if df_all.empty:
-            st.warning("કોઈ રેકોર્ડ ઉપલબ્ધ નથી.")
-        else:
-            # ફિલ્ટર માટેના ઓપ્શન્સ (શાખા, તારીખ અને સર્ચ)
-            col_f1, col_f2, col_f3 = st.columns(3)
-            with col_f1:
-                selected_branch = st.selectbox("શાખા પસંદ કરો (Select Branch):", ["બધી શાખાઓ (All)"] + branch_list)
-            with col_f2:
-                selected_date = st.date_input("🗓️ તારીખ પસંદ કરો:", date.today())
-            with col_f3:
-                search_query = st.text_input("🔍 સર્ચ કરો (ટપાલ નં / વિષય / Ref No):")
+# ==========================================
+# ૦. પેજ સેટઅપ અને સરકારી બ્લુ થીમ CSS
+# ==========================================
+st.set_page_config(
+    page_title="મામલતદાર કચેરી સુત્રાપાડા - ઈ-ઇનવર્ડ પોર્ટલ",
+    page_icon="🏛️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-            # ડેટા ફિલ્ટરિંગ લોજિક
-            df_filtered = df_all.copy()
-            
-            # તારીખ મુજબ ફિલ્ટર
-            if selected_date:
-                df_filtered = df_filtered[df_filtered["entry_date"] == str(selected_date)]
-            
-            # શાખા મુજબ ફિલ્ટર
-            if selected_branch != "બધી શાખાઓ (All)":
-                df_filtered = df_filtered[df_filtered["branch"] == selected_branch]
-                
-            # સર્ચ ક્વેરી મુજબ ફિલ્ટર (ટપાલ નંબર, વિષય અથવા રેફરન્સ નંબર)
-            if search_query.strip():
-                q = search_query.strip().lower()
-                df_filtered = df_filtered[
-                    df_filtered["tappal_no"].str.lower().str.contains(q, na=False) |
-                    df_filtered["letter_subject"].str.lower().str.contains(q, na=False) |
-                    df_filtered["ref_no"].str.lower().str.contains(q, na=False)
-                ]
+# === લૉગિન સ્ટેટ મેનેજમેન્ટ ===
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = ""
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = ""
 
-            if df_filtered.empty:
-                st.info("આ ફિલ્ટર મુજબ કોઈ ટપાલ મળી નથી.")
-            else:
-                st.subheader(f"📋 મળેલ ટપાલોની યાદી (કુલ: {len(df_filtered)})")
-                
-                # પ્રિન્ટ/વર્કલિસ્ટ માટેના કોલમ્સ ગોઠવવા
-                display_df = df_filtered[["id", "tappal_no", "ref_no", "javak_no", "branch", "letter_subject", "status", "entry_date"]]
-                display_df.columns = ["ID", "ટપાલ નં.", "Ref No", "જાવક નં.", "શાખા", "પત્રનો વિષય", "સ્ટેટસ", "તારીખ"]
-                
-                st.dataframe(display_df, use_container_width=True, hide_index=True)
+# Custom CSS for UI & Designer Credit
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
+    
+    html, body, [class*="css"], div, span, h1, h2, h3, h4, p {
+        font-family: 'Noto Sans Gujarati', 'Segoe UI', Tahoma, sans-serif !important;
+        color: #0F172A !important;
+    }
 
-                # PDF અને પ્રિન્ટ ડાઉનલોડ બટન
-                st.write("---")
-                st.subheader("🖨️ રિપોર્ટ ડાઉનલોડ અને પ્રિન્ટ વિકલ્પો")
-                
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    pdf_buffer = generate_pdf(display_df, f"Mamlatdar Office Sutrapada - Daily Worklist ({selected_date})")
-                    st.download_button(
-                        label="📥 PDF ફાઈલ ડાઉનલોડ કરો (Download PDF)",
-                        data=pdf_buffer,
-                        file_name=f"Worklist_{selected_date}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                with col_btn2:
-                    html_table = display_df.to_html(classes="styled-table", index=False)
-                    print_html_code = f"""
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                    <title>દૈનિક ટપાલ વર્કલિસ્ટ</title>
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap');
-                        @page {{ size: landscape; margin: 10mm; }}
-                        body {{ font-family: 'Noto Sans Gujarati', sans-serif; margin: 20px; color: #000; text-align: center; }}
-                        h2 {{ color: #003366; margin-bottom: 2px; font-size: 20px; }}
-                        p {{ font-size: 14px; margin-top: 0; color: #555; margin-bottom: 20px; }}
-                        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; text-align: left; }}
-                        th, td {{ border: 1px solid #003366; padding: 6px; vertical-align: middle; }}
-                        th {{ background-color: #003366 !important; color: white !important; font-weight: 600; -webkit-print-color-adjust: exact; }}
-                        .print-btn {{ background-color: #16A34A; color: white; padding: 12px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; font-family: 'Noto Sans Gujarati', sans-serif; margin-bottom: 20px; }}
-                        @media print {{ .print-btn {{ display: none; }} }}
-                    </style>
-                    </head>
-                    <body>
-                        <button class="print-btn" onclick="window.print();">🖨️ અહીં ક્લિક કરીને પ્રિન્ટ કાઢો (Print)</button>
-                        <h2>મામલતદાર કચેરી - સુત્રાપાડા</h2>
-                        <p><b>દૈનિક ટપાલ વર્કલિસ્ટ રિપોર્ટ (તારીખ: {selected_date})</b></p>
-                        {html_table}
-                    </body>
-                    </html>
-                    """
-                    components.html(print_html_code, height=100)
+    .stApp {
+        background-color: #F0F4F8;
+    }
+    
+    [data-testid="stSidebar"] {
+        background-color: #0A2540 !important;
+        border-right: 2px solid #1E3A8A;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #FFFFFF !important;
+    }
+
+    .govt-header {
+        background: linear-gradient(135deg, #003366 0%, #001A33 100%);
+        color: #FFFFFF !important;
+        padding: 22px 28px;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(0, 51, 102, 0.25);
+        border-left: 6px solid #FF9933;
+        margin-bottom: 25px;
+    }
+
+    .govt-title {
+        font-size: 26px;
+        font-weight: 700;
+        margin: 0;
+        color: #FFFFFF !important;
+    }
+
+    .govt-subtitle {
+        font-size: 14px;
+        color: #E2E8F0 !important;
+        margin-top: 6px;
+    }
+
+    .stat-card {
+        background-color: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 2px 6px rgba(0, 51, 102, 0.06);
+        border-top: 5px solid #003366;
+    }
+
+    .stat-title {
+        color: #475569 !important;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .stat-value {
+        color: #003366 !important;
+        font-size: 28px;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+
+    .stButton>button {
+        background-color: #003366 !important;
+        color: #FFFFFF !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        border: none !important;
+        padding: 10px 24px !important;
+    }
+
+    .stButton>button:hover {
+        background-color: #0055A5 !important;
+        color: #FFFFFF !important;
+    }
+
+    input, select, textarea {
+        border-radius: 6px !important;
+        border: 1px solid #94A3B8 !important;
+        background-color: #FFFFFF !important;
+    }
+
+    div[data-testid="stDataFrame"] {
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        background-color: #FFFFFF;
+    }
+
+    .designer-box {
+        background: linear-gradient(135deg, #FF9933 0%, #D97706 100%);
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    .designer-text {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #FFFFFF !important;
+        margin-bottom: 2px;
+    }
+    .designer-name {
+        font-size: 16px;
