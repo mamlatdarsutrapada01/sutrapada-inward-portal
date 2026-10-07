@@ -10,9 +10,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 
-# ==========================================
-# ૦. પેજ સેટઅપ અને સરકારી બ્લુ થીમ CSS
-# ==========================================
 st.set_page_config(
     page_title="મામલતદાર કચેરી સુત્રાપાડા - ઈ-ઇનવર્ડ પોર્ટલ",
     page_icon="🏛️",
@@ -20,7 +17,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# === લૉગિન સ્ટેટ મેનેજમેન્ટ ===
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'current_user' not in st.session_state:
@@ -28,7 +24,6 @@ if 'current_user' not in st.session_state:
 if 'user_role' not in st.session_state:
     st.session_state.user_role = ""
 
-# Custom CSS for UI & Designer Credit
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
@@ -120,4 +115,36 @@ st.markdown("""
     div[data-testid="stDataFrame"] {
         border: 1px solid #CBD5E1;
         border-radius: 8px;
-        background-color
+        background-color: #FFFFFF;
+    }
+
+    .designer-box {
+        background: linear-gradient(135deg, #FF9933 0%, #D97706 100%);
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    .designer-text {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #FFFFFF !important;
+        margin-bottom: 2px;
+    }
+    .designer-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: #FFFFFF !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+if not st.session_state.logged_in:
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(
+            '<div style="text-align: center; background: #FFFFFF; padding: 30
