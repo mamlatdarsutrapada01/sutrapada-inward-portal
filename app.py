@@ -1,98 +1,67 @@
-import io
-import sqlite3
-import time
-from datetime import date
-import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
 
 st.set_page_config(
-    page_title="મામલતદાર કચેરી સુત્રાપાડા - ઈ-ઇનવર્ડ પોર્ટલ",
-    page_icon="🏛️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Sutrapada Inward Portal",
+    page_icon="📄",
+    layout="wide"
 )
 
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'current_user' not in st.session_state:
-    st.session_state.current_user = ""
-if 'user_role' not in st.session_state:
-    st.session_state.user_role = ""
-
 st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
-    
-    html, body, [class*="css"], div, span, h1, h2, h3, h4, p {
-        font-family: 'Noto Sans Gujarati', 'Segoe UI', Tahoma, sans-serif !important;
-        color: #0F172A !important;
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        color: #1E3A8A;
+        text-align: center;
+        margin-bottom: 2rem;
     }
-
-    .stApp {
-        background-color: #F0F4F8;
-    }
-    
-    [data-testid="stSidebar"] {
-        background-color: #0A2540 !important;
-        border-right: 2px solid #1E3A8A;
-    }
-
-    [data-testid="stSidebar"] * {
-        color: #FFFFFF !important;
-    }
-
-    .govt-header {
-        background: linear-gradient(135deg, #003366 0%, #001A33 100%);
-        color: #FFFFFF !important;
-        padding: 22px 28px;
-        border-radius: 10px;
-        box-shadow: 0 4px 14px rgba(0, 51, 102, 0.25);
-        border-left: 6px solid #FF9933;
-        margin-bottom: 25px;
-    }
-
-    .govt-title {
-        font-size: 26px;
-        font-weight: 700;
-        margin: 0;
-        color: #FFFFFF !important;
-    }
-
-    .govt-subtitle {
-        font-size: 14px;
-        color: #E2E8F0 !important;
-        margin-top: 6px;
-    }
-
-    .stat-card {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 10px;
-        padding: 18px;
-        box-shadow: 0 2px 6px rgba(0, 51, 102, 0.06);
-        border-top: 5px solid #003366;
-    }
-
-    .stat-title {
-        color: #475569 !important;
-        font-size: 13px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-    .stat-value {
-        color: #003366 !important;
-        font-size: 28px;
-        font-weight: 700;
-        margin-top: 8px;
-    }
-
     .stButton>button {
-        background-color: #003366 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px !
+        width: 100%;
+        background-color: #2563EB;
+        color: white;
+        font-weight: bold;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="main-header">Sutrapada Inward Portal</div>', unsafe_allow_html=True)
+
+# sidebar navigation or main content setup
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Home / Inward Entry", "View Records", "Search"])
+
+if page == "Home / Inward Entry":
+    st.subheader("Add New Inward Entry")
+    
+    with st.form("inward_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            inward_no = st.text_input("Inward Number")
+            date = st.date_input("Date")
+            sender = st.text_input("Sender Name / Department")
+            
+        with col2:
+            subject = st.text_input("Subject / Description")
+            receiver = st.text_input("Receiver Name")
+            status = st.selectbox("Status", ["Pending", "In Progress", "Completed"])
+            
+        remarks = st.text_area("Remarks")
+        
+        submitted = st.form_submit_button("Submit Inward")
+        
+        if submitted:
+            if inward_no and sender:
+                st.success(f"Inward {inward_no} successfully saved!")
+            else:
+                st.error("Please fill in the required fields (Inward Number and Sender Name).")
+
+elif page == "View Records":
+    st.subheader("Inward Records")
+    st.info("Here you can view all the submitted inward records.")
+    # Add your database or dataframe display logic here
+
+else:
+    st.subheader("Search Records")
+    search_query = st.text_input("Enter Inward Number or Sender Name to search:")
+    if search_query:
+        st.write(f"Searching for: {search_query}")
